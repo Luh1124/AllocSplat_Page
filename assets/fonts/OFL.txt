@@ -1,7 +1,7 @@
 Fonts in this folder (latin subsets):
-  IBM Plex Sans, IBM Plex Mono - Copyright 2017 IBM Corp., with Reserved Font Name "Plex".
-  Source Serif 4 - Copyright 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name "Source".
-All are licensed under the SIL Open Font License, Version 1.1, reproduced below.
+  Archivo - Copyright 2020 The Archivo Project Authors (https://github.com/Omnibus-Type/Archivo).
+  JetBrains Mono - Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono).
+Both are licensed under the SIL Open Font License, Version 1.1, reproduced below.
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:

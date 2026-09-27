@@ -9,241 +9,230 @@
 <meta property="og:description" content="One feed-forward model, a range of Gaussian budgets. Interactive viewer of the predicted Gaussians and anchors.">
 <meta property="og:image" content="assets/figures/teaser.png">
 <style>
-  @font-face { font-family: 'Archivo'; font-style: normal; font-weight: 100 900; font-stretch: 62% 125%; font-display: swap; src: url(assets/fonts/Archivo.woff2) format('woff2'); }
-  @font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 400 700; font-display: swap; src: url(assets/fonts/JetBrainsMono.woff2) format('woff2'); }
-  /* One deliberate world: a blueprint sheet. No light/dark switch; every colour is painted explicitly. */
+  @font-face { font-family: 'Geist'; font-style: normal; font-weight: 100 900; font-display: swap; src: url(assets/fonts/Geist.woff2) format('woff2'); }
+  @font-face { font-family: 'Geist Mono'; font-style: normal; font-weight: 400 600; font-display: swap; src: url(assets/fonts/GeistMono.woff2) format('woff2'); }
   :root {
-    color-scheme: dark;
-    --paper: #0c2744; --paper-2: #0a2139; --plate: #f4f7fb;
-    --grid: rgba(190, 220, 250, .055); --grid-major: rgba(190, 220, 250, .10);
-    --line: rgba(205, 226, 248, .26); --line-strong: rgba(214, 232, 250, .62);
-    --ink: #eef5fc; --ink-2: #bcd0e4; --ink-3: #85a2bf;
-    --accent: #ffb547; --accent-ink: #ffd08a; --accent-soft: rgba(255, 181, 71, .13); --on-accent: #1d1406;
-    --canvas-bg: #808080; --radius: 3px; --radius-s: 2px;
-    --stage: var(--paper-2); --stage-line: var(--line);
-    --sans: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
-    --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-    --serif: var(--sans);
+    --bg: #ffffff; --surface: #f5f5f4; --surface-2: #ececea; --ink: #0c0d0e; --ink-2: #55585d; --ink-3: #8b8e93;
+    --hair: #e7e7e4; --btn: #0c0d0e; --btn-ink: #ffffff; --plate: #ffffff;
+    --canvas-bg: #808080; --radius: 16px; --radius-s: 9px;
+    --sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    --mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b0c0d; --surface: #151618; --surface-2: #1d1e21; --ink: #f2f2f0; --ink-2: #a6a8ac; --ink-3: #75787d;
+      --hair: #232427; --btn: #f2f2f0; --btn-ink: #0b0c0d; --plate: #f7f7f5;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0b0c0d; --surface: #151618; --surface-2: #1d1e21; --ink: #f2f2f0; --ink-2: #a6a8ac; --ink-3: #75787d;
+    --hair: #232427; --btn: #f2f2f0; --btn-ink: #0b0c0d; --plate: #f7f7f5;
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
-  [id] { scroll-margin-top: 64px; }
+  [id] { scroll-margin-top: 72px; }
   html { -webkit-text-size-adjust: 100%; }
-  body { margin: 0; color: var(--ink); font: 15.5px/1.62 var(--sans); font-stretch: 100%; -webkit-font-smoothing: antialiased;
-    background-color: var(--paper);
-    background-image: linear-gradient(var(--grid-major) 1px, transparent 1px), linear-gradient(90deg, var(--grid-major) 1px, transparent 1px),
-                      linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-    background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px; background-position: -1px -1px; }
-  a { color: var(--accent-ink); }
-  i { font-style: italic; font-family: var(--sans); }
-  .wrap { max-width: 1240px; margin: 0 auto; padding-inline: 28px; }
-  .mono { font-family: var(--mono); }
-  h2 { font: 600 11px/1.3 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 10px; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--sans); -webkit-font-smoothing: antialiased; }
+  a { color: inherit; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding-inline: 32px; }
+  h2 { font: 500 12px/1.3 var(--sans); letter-spacing: .01em; color: var(--ink-3); margin: 0 0 10px; }
 
-  /* ---------- nav */
-  .topnav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: rgba(10, 33, 57, .88); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
-  .topnav .wrap { display: flex; align-items: center; gap: 22px; height: 48px; overflow-x: auto; scrollbar-width: none; }
-  .topnav .brand { font: 800 16px/1 var(--sans); font-stretch: 118%; letter-spacing: .02em; color: var(--ink); text-decoration: none; margin-right: auto; white-space: nowrap; }
-  .topnav .brand span { color: var(--accent); }
-  .topnav a.lnk { font: 500 11.5px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); text-decoration: none; white-space: nowrap; }
-  .topnav a.lnk:hover { color: var(--accent); }
+  /* nav */
+  .topnav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: color-mix(in srgb, var(--bg) 82%, transparent);
+            backdrop-filter: saturate(1.6) blur(14px); -webkit-backdrop-filter: saturate(1.6) blur(14px); border-bottom: 1px solid transparent; transition: border-color .2s; }
+  .topnav.scrolled { border-bottom-color: var(--hair); }
+  .topnav .wrap { display: flex; align-items: center; gap: 28px; height: 56px; overflow-x: auto; scrollbar-width: none; }
+  .topnav .brand { font: 600 15px/1 var(--sans); letter-spacing: -.01em; color: var(--ink); text-decoration: none; margin-right: auto; white-space: nowrap; }
+  .topnav a.lnk { font-size: 13.5px; color: var(--ink-2); text-decoration: none; white-space: nowrap; transition: color .15s; }
+  .topnav a.lnk:hover { color: var(--ink); }
 
-  /* ---------- hero: wordmark + drawing title block */
-  .hero { padding-block: 56px 20px; }
-  .hero-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 44px; align-items: end; }
-  .kicker { font: 800 clamp(50px, 7vw, 100px)/.9 var(--sans); font-stretch: 112%; letter-spacing: -.02em; margin: 0; color: var(--ink); }
-  .kicker span { color: var(--accent); }
-  .hero h1 { font: 500 clamp(19px, 2.1vw, 26px)/1.28 var(--sans); font-stretch: 100%; margin: 18px 0 0; max-width: 34ch; color: var(--ink-2); text-wrap: balance; }
-  .dim { display: flex; align-items: center; gap: 10px; margin-top: 22px; font: 11px var(--mono); color: var(--ink-3); letter-spacing: .06em; }
-  .dim::before, .dim::after { content: ""; height: 1px; flex: 1; background: var(--line-strong); }
-  .dim span { white-space: nowrap; }
-  .titleblock { border: 1.5px solid var(--line-strong); display: grid; grid-template-columns: 112px 1fr; font-size: 14px; background: rgba(10, 33, 57, .55); }
-  .titleblock > div { padding: 9px 12px; border-top: 1px solid var(--line); }
-  .titleblock > div:nth-child(-n+2) { border-top: 0; }
-  .titleblock .k { font: 600 10.5px/1.5 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); border-right: 1px solid var(--line); }
-  .authors, .affils, .roles { display: flex; flex-wrap: wrap; gap: 2px 14px; }
-  .authors { color: var(--ink); font-weight: 500; }
-  .affils { color: var(--ink-2); font-size: 13px; }
-  .roles { color: var(--ink-3); font-size: 12px; }
-  .authors sup, .affils sup, .roles sup { font: 500 9.5px var(--mono); color: var(--accent); margin-left: 1px; }
-  .spec { font: 12.5px/1.6 var(--mono); color: var(--ink-2); }
-  .spec b { color: var(--ink); font-weight: 600; }
-  .links { display: flex; flex-wrap: wrap; gap: 8px; }
-  .links a, .links .soon { display: inline-flex; align-items: center; gap: 7px; font: 600 12px/1 var(--mono); letter-spacing: .04em; text-transform: uppercase; text-decoration: none; padding: 8px 11px; border-radius: var(--radius); }
-  .links a { color: var(--on-accent); background: var(--accent); }
-  .links a:hover { background: var(--accent-ink); }
-  .links .soon { color: var(--ink-2); border: 1px dashed var(--line-strong); cursor: default; }
-  .links .soon em { font-style: normal; font-weight: 400; color: var(--ink-3); text-transform: none; letter-spacing: 0; }
-  .links svg { width: 14px; height: 14px; fill: currentColor; }
+  /* hero */
+  .hero { padding-block: clamp(64px, 10vw, 132px) 56px; }
+  .hero h1 { margin: 0; font: 600 clamp(56px, 9.5vw, 120px)/.92 var(--sans); letter-spacing: -.05em; }
+  .hero .subtitle { margin: 24px 0 0; font: 400 clamp(20px, 2.5vw, 32px)/1.22 var(--sans); letter-spacing: -.022em; color: var(--ink-2); max-width: 30ch; text-wrap: balance; }
+  .people { margin-top: 48px; display: grid; gap: 8px; }
+  .authors { display: flex; flex-wrap: wrap; gap: 4px 22px; font-size: 16.5px; color: var(--ink); }
+  .affils { display: flex; flex-wrap: wrap; gap: 2px 18px; font-size: 14px; color: var(--ink-2); }
+  .roles { display: flex; flex-wrap: wrap; gap: 2px 18px; font-size: 13px; color: var(--ink-3); }
+  .authors sup, .affils sup, .roles sup { font-size: 10px; color: var(--ink-3); margin-left: 1px; }
+  .links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 38px; }
+  .links a, .links .soon { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 18px; border-radius: 999px; font: 500 14px/1 var(--sans); text-decoration: none; }
+  .links a { background: var(--btn); color: var(--btn-ink); transition: opacity .15s; }
+  .links a:hover { opacity: .85; }
+  .links .soon { box-shadow: 0 0 0 1px var(--hair) inset; color: var(--ink); cursor: default; }
+  .links .soon em { font-style: normal; font-size: 12px; color: var(--ink-3); }
+  .links svg { width: 16px; height: 16px; fill: currentColor; }
 
-  /* ---------- plates (paper figures pinned to the sheet) */
-  .figure { margin: 34px 0 0; }
-  .plate { position: relative; background: var(--plate); padding: 18px; }
-  .plate::before, .plate::after { content: ""; position: absolute; width: 14px; height: 14px; border: 1.5px solid var(--accent); }
-  .plate::before { top: -7px; left: -7px; border-right: 0; border-bottom: 0; }
-  .plate::after { bottom: -7px; right: -7px; border-left: 0; border-top: 0; }
+  /* figures */
+  .figure { margin: 0; }
+  .plate { background: var(--plate); border-radius: var(--radius); padding: clamp(14px, 2.6vw, 34px); box-shadow: 0 0 0 1px var(--hair), 0 40px 80px -40px rgba(0,0,0,.22); }
   .plate img { width: 100%; height: auto; display: block; }
-  .figure figcaption { font-size: 13.5px; color: var(--ink-2); margin: 14px 0 0; max-width: 100ch; }
-  .figure figcaption .fig { font: 600 11px var(--mono); letter-spacing: .1em; color: var(--accent); margin-right: 8px; }
+  .cap { display: grid; grid-template-columns: 200px 1fr; gap: 32px; margin-top: 20px; font-size: 14px; color: var(--ink-2); }
+  .cap .lab { color: var(--ink-3); font-size: 13px; }
+  .cap p { margin: 0; }
+  .cap b { color: var(--ink); font-weight: 600; }
 
-  /* ---------- sections */
-  section.block { padding-block: 64px 4px; }
-  .sechead { display: grid; grid-template-columns: auto 1fr; align-items: end; gap: 16px; margin: 0 0 22px; }
-  .sechead .no { font: 600 12px/1 var(--mono); color: var(--accent); letter-spacing: .1em; padding-bottom: 7px; }
-  .sechead h2.sec { font: 700 clamp(26px, 3vw, 38px)/1 var(--sans); font-stretch: 112%; letter-spacing: -.01em; text-transform: none; color: var(--ink); margin: 0;
-                    padding-bottom: 12px; border-bottom: 1px solid var(--line-strong);
-                    background: repeating-linear-gradient(90deg, var(--line-strong) 0 1px, transparent 1px 24px) bottom / 100% 6px no-repeat; }
-  .sec-lede { color: var(--ink-2); max-width: 80ch; margin: -6px 0 26px; }
-  .abstract p { font-size: 17px; line-height: 1.72; color: var(--ink); max-width: 84ch; margin: 0; }
-  .abstract p b { color: var(--accent-ink); font-weight: 600; }
+  /* two-column sections: label | content (content spans the full remaining width) */
+  .row2 { display: grid; grid-template-columns: 200px 1fr; gap: 32px; margin-top: 88px; padding-top: 36px; border-top: 1px solid var(--hair); }
+  .row2 > * { min-width: 0; }
+  .row2 > .lab { font: 500 14px/1.7 var(--sans); color: var(--ink); }
+  .abstract p { margin: 0; font-size: clamp(17px, 1.55vw, 20px); line-height: 1.72; letter-spacing: -.008em; color: var(--ink); }
+  .abstract p b { font-weight: 600; }
+  .lede-m { margin: 0; font-size: clamp(17px, 1.55vw, 20px); line-height: 1.6; letter-spacing: -.008em; color: var(--ink-2); }
+  .lede-m b { color: var(--ink); font-weight: 600; font-style: italic; }
+  .full { margin-top: 36px; }
 
-  /* ---------- viewer */
-  .stage-band { --panel: rgba(10, 33, 57, .72); }
-  .scenes { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; margin: 0 0 28px; }
+  /* dark stage: viewer + budgets video. Its own palette, fixed in both themes. */
+  .stage-band { margin-top: 112px; background: #0b0c0d; color: #f2f2f0; padding-block: 96px 80px;
+    --ink: #f2f2f0; --ink-2: #a3a6aa; --ink-3: #6f7277; --hair: #222326; --line: #2b2d31; --panel: #131416;
+    --accent: #f2f2f0; --accent-ink: #ffffff; --accent-soft: rgba(242,242,240,.07); --on-accent: #0b0c0d; }
+  .stage-band .sec-title { font: 600 clamp(36px, 4.6vw, 60px)/1 var(--sans); letter-spacing: -.04em; margin: 0; color: #fff; }
+  .stage-band .sec-lede { color: var(--ink-2); font-size: 17.5px; line-height: 1.6; max-width: 64ch; margin: 20px 0 48px; }
+  .stage-band h2 { color: var(--ink-3); }
+  .scenes { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; margin: 0 0 36px; }
   @media (max-width: 1080px) { .scenes { grid-template-columns: repeat(4, 1fr); } }
-  .scene-card { all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 5px; min-width: 0; font: 11px var(--mono); color: var(--ink-3); }
-  .scene-card img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; border: 1px solid var(--line); opacity: .72; transition: opacity .2s, border-color .2s; }
-  .scene-card:hover img { opacity: 1; }
+  .scene-card { all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: 12px; color: var(--ink-3); }
+  .scene-card img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; border-radius: 10px; opacity: .5; transition: opacity .25s; }
+  .scene-card:hover img { opacity: .9; }
   .scene-card .sc-name { color: var(--ink-2); }
-  .scene-card[aria-pressed="true"] img { opacity: 1; border: 1.5px solid var(--accent); }
-  .scene-card[aria-pressed="true"] .sc-name { color: var(--accent); }
-  .scene-card:focus-visible img { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .scene-card .sc-psnr { font: 11px var(--mono); }
+  .scene-card[aria-pressed="true"] img { opacity: 1; box-shadow: 0 0 0 2px #fff; }
+  .scene-card[aria-pressed="true"] .sc-name { color: #fff; }
+  .scene-card:focus-visible img { outline: 2px solid #fff; outline-offset: 3px; }
   .viewer { display: grid; grid-template-columns: minmax(0, 680px) minmax(310px, 1fr); gap: 28px; align-items: start; }
   .stage { position: relative; }
-  .stage::before, .stage::after { content: ""; position: absolute; width: 16px; height: 16px; border: 1.5px solid var(--accent); pointer-events: none; z-index: 1; }
-  .stage::before { top: -7px; left: -7px; border-right: 0; border-bottom: 0; }
-  .stage::after { top: -7px; right: -7px; border-left: 0; border-bottom: 0; }
-  #gl { width: 100%; aspect-ratio: 1; display: block; background: var(--canvas-bg); touch-action: none; cursor: grab; outline: 1px solid var(--line-strong); }
+  #gl { width: 100%; aspect-ratio: 1; display: block; border-radius: var(--radius); background: var(--canvas-bg); touch-action: none; cursor: grab; }
   #gl:active { cursor: grabbing; }
-  #status { position: absolute; left: 12px; top: 12px; color: #fff; font: 12px var(--mono); background: rgba(10,33,57,.8); padding: 3px 8px; pointer-events: none; z-index: 2; }
+  #status { position: absolute; left: 14px; top: 14px; color: #fff; font-size: 12.5px; background: rgba(0,0,0,.55); border-radius: 999px; padding: 4px 10px; pointer-events: none; }
   #status:empty { display: none; }
-  .hint { font-size: 12.5px; color: var(--ink-3); margin: 12px 0 0; line-height: 1.7; }
-  .hint kbd { font: 11px var(--mono); border: 1px solid var(--line-strong); border-radius: 2px; padding: 0 5px; color: var(--ink-2); }
-  .panel { background: var(--panel); border: 1.5px solid var(--line-strong); display: flex; flex-direction: column; }
-  .panel > div { padding: 15px 18px; border-top: 1px solid var(--line); }
+  .hint { font-size: 12.5px; color: var(--ink-3); margin: 14px 0 0; line-height: 1.7; }
+  .hint kbd { font: 11px var(--mono); box-shadow: 0 0 0 1px var(--line) inset; border-radius: 5px; padding: 1px 5px; color: var(--ink-2); }
+  .panel { background: var(--panel); border-radius: var(--radius); display: flex; flex-direction: column; box-shadow: 0 0 0 1px var(--hair) inset; }
+  .panel > div { padding: 16px 20px; border-top: 1px solid var(--hair); }
   .panel > div:first-child { border-top: 0; }
   .scene-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-  .scene-head b { font: 700 21px/1.2 var(--sans); font-stretch: 112%; color: var(--ink); }
+  .scene-head b { font: 600 20px/1.2 var(--sans); letter-spacing: -.025em; color: #fff; }
   .scene-head span { font: 11px var(--mono); color: var(--ink-3); }
-  .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line-strong); overflow: visible; }
-  .seg button { all: unset; cursor: pointer; position: relative; text-align: center; padding: 7px 4px; font: 500 12px/1.35 var(--mono); color: var(--ink-2); border-left: 1px solid var(--line);
+  .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; padding: 3px; border-radius: 11px; background: rgba(255,255,255,.06); }
+  .seg button { all: unset; cursor: pointer; position: relative; text-align: center; padding: 7px 4px; font: 500 13px/1.35 var(--sans); color: var(--ink-2); border-radius: 8px;
                 display: flex; flex-direction: column; gap: 1px; transition: background .15s, color .15s; }
-  .seg button:first-child { border-left: 0; }
-  .seg button:hover { color: var(--ink); background: rgba(214,232,250,.07); }
-  .seg button b { font-weight: 600; }
-  .seg button span { font-size: 10.5px; color: var(--ink-3); }
-  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
-  .seg button[aria-pressed="true"] span { color: var(--on-accent); opacity: .72; }
-  .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .seg button.is-default::after { content: "default"; position: absolute; top: -8px; right: 3px; font: 600 8.5px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase;
-                                  color: var(--on-accent); background: var(--accent-ink); padding: 2px 4px; }
-  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; margin-top: 14px; }
-  .stats div { display: flex; flex-direction: column; gap: 1px; }
-  .stats span { font: 10.5px var(--mono); color: var(--ink-3); letter-spacing: .04em; text-transform: uppercase; }
-  .stats b { font: 500 19px/1.2 var(--mono); color: var(--ink); }
+  .seg button:hover { color: #fff; }
+  .seg button b { font-weight: 500; }
+  .seg button span { font: 10.5px var(--mono); color: var(--ink-3); }
+  .seg button[aria-pressed="true"] { background: #f2f2f0; color: #0b0c0d; }
+  .seg button[aria-pressed="true"] span { color: #5a5d62; }
+  .seg button:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
+  .seg button.is-default::before { content: ""; position: absolute; top: 7px; right: 7px; width: 5px; height: 5px; border-radius: 50%; background: #ffb547; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; margin-top: 16px; }
+  .stats div { display: flex; flex-direction: column; gap: 2px; }
+  .stats span { font-size: 11.5px; color: var(--ink-3); }
+  .stats b { font: 500 20px/1.2 var(--mono); letter-spacing: -.02em; color: #fff; }
   .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .row output { font: 12px var(--mono); color: var(--ink-2); min-width: 92px; text-align: right; }
   input[type=range] { flex: 1; min-width: 120px; -webkit-appearance: none; appearance: none; height: 22px; background: transparent; margin: 0; }
-  input[type=range]::-webkit-slider-runnable-track { height: 2px; background: var(--line-strong); }
-  input[type=range]::-moz-range-track { height: 2px; background: var(--line-strong); }
-  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 18px; margin-top: -8px; background: var(--accent); border: 0; }
-  input[type=range]::-moz-range-thumb { width: 12px; height: 18px; background: var(--accent); border: 0; border-radius: 0; }
-  input[type=range]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .btn { all: unset; cursor: pointer; font: 600 11.5px/1 var(--mono); letter-spacing: .05em; text-transform: uppercase; padding: 7px 10px; border: 1px solid var(--line-strong); color: var(--ink); transition: border-color .15s, background .15s; }
-  .btn:hover { border-color: var(--accent); background: var(--accent-soft); }
-  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .btn.sm { padding: 4px 8px; font-size: 10.5px; }
-  .views { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
+  input[type=range]::-webkit-slider-runnable-track { height: 3px; border-radius: 2px; background: rgba(255,255,255,.18); }
+  input[type=range]::-moz-range-track { height: 3px; border-radius: 2px; background: rgba(255,255,255,.18); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 15px; height: 15px; margin-top: -6px; border-radius: 50%; background: #fff; border: 0; box-shadow: 0 1px 4px rgba(0,0,0,.5); }
+  input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 50%; background: #fff; border: 0; }
+  input[type=range]:focus-visible { outline: 2px solid #fff; outline-offset: 2px; border-radius: 4px; }
+  .btn { all: unset; cursor: pointer; font: 500 12.5px/1 var(--sans); padding: 8px 13px; border-radius: 999px; color: #f2f2f0; box-shadow: 0 0 0 1px var(--line) inset; transition: background .15s; }
+  .btn:hover { background: rgba(255,255,255,.08); }
+  .btn:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
+  .btn.sm { padding: 5px 10px; font-size: 11.5px; }
+  .views { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   .view-thumb { all: unset; cursor: pointer; position: relative; }
-  .view-thumb img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; outline: 2px solid var(--vc); outline-offset: -2px; }
-  .view-thumb span { position: absolute; left: 0; top: 0; font: 600 10px/1 var(--mono); color: #fff; background: var(--vc); padding: 3px 5px; }
-  .view-thumb:focus-visible img { outline-width: 3px; }
-  .sel { font-size: 13px; color: var(--ink-2); border: 1px dashed var(--line); padding: 11px 12px; line-height: 1.55; }
-  .sel.on { border: 1px solid var(--accent); background: var(--accent-soft); }
-  .sel b { color: var(--ink); }
+  .view-thumb img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; border-radius: 8px; box-shadow: 0 0 0 2px var(--vc); }
+  .view-thumb span { position: absolute; left: 6px; top: 6px; width: 16px; height: 16px; display: grid; place-items: center; border-radius: 50%; font: 600 9.5px/1 var(--mono); color: #fff; background: var(--vc); }
+  .view-thumb:focus-visible img { outline: 2px solid #fff; outline-offset: 2px; }
+  .sel { font-size: 13px; color: var(--ink-2); background: rgba(255,255,255,.035); border-radius: 11px; padding: 12px 14px; line-height: 1.55; }
+  .sel.on { background: rgba(255,255,255,.055); box-shadow: 0 0 0 1px rgba(255,181,71,.35) inset; }
+  .sel b { color: #fff; }
   .sel-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 10px; margin-bottom: 10px; }
-  .sel-head b { font: 700 16px/1.2 var(--sans); font-stretch: 110%; }
-  .sel-head > span { font: 11px var(--mono); color: var(--ink-3); }
-  .sel-head .hov { margin-left: auto; font-style: italic; }
+  .sel-head b { font: 600 16px/1.2 var(--sans); letter-spacing: -.015em; }
+  .sel-head > span { font-size: 12px; color: var(--ink-3); }
+  .sel-head .hov { margin-left: auto; }
   .sel-head .sel-btns { margin-left: auto; display: inline-flex; gap: 6px; }
-  .vchip { font: 600 10px/1 var(--mono) !important; color: #fff !important; background: var(--vc); padding: 4px 6px; }
-  .sel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
+  .vchip { font: 600 10px/1 var(--mono) !important; color: #fff !important; background: var(--vc); border-radius: 999px; padding: 4px 7px; }
+  .sel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
   .sel-grid div { display: flex; flex-direction: column; }
-  .sel-grid span { font: 10px var(--mono); color: var(--ink-3); letter-spacing: .03em; }
+  .sel-grid span { font-size: 11px; color: var(--ink-3); }
   .sel-grid b { font: 500 16px/1.25 var(--mono); }
   .sel-chart { margin-top: 12px; }
-  .sel-chart > span { font: 10px var(--mono); color: var(--ink-3); }
+  .sel-chart > span { font-size: 11px; color: var(--ink-3); }
   .rho-chart { width: 100%; height: auto; display: block; margin-top: 2px; }
-  .rho-chart .bar { fill: rgba(214,232,250,.28); } .rho-chart .cur { fill: var(--accent); } .rho-chart .none { fill: rgba(214,232,250,.3); }
-  .rho-chart .ax { font: 10px var(--mono); fill: var(--ink-3); } .rho-chart .val { font: 10px var(--mono); fill: var(--ink-2); } .rho-chart .val.c { fill: var(--accent-ink); font-weight: 600; }
+  .rho-chart .bar { fill: rgba(255,255,255,.18); } .rho-chart .cur { fill: #ffb547; } .rho-chart .none { fill: rgba(255,255,255,.18); }
+  .rho-chart .ax { font: 10px var(--mono); fill: var(--ink-3); } .rho-chart .val { font: 10px var(--mono); fill: var(--ink-2); } .rho-chart .val.c { fill: #ffd08a; font-weight: 600; }
   .sel-note { font-size: 12.5px; color: var(--ink-2); margin: 10px 0 0; }
-  .focus-row { display: flex; align-items: center; gap: 12px; margin-top: 12px; font: 11px var(--mono); color: var(--ink-3); }
+  .focus-row { display: flex; align-items: center; gap: 12px; margin-top: 12px; font-size: 12px; color: var(--ink-3); }
   .focus-row .seg { flex: 1; }
-  .legend { display: flex; align-items: center; gap: 8px; font: 11px var(--mono); color: var(--ink-3); margin-top: 8px; }
-  .legend .bar { flex: 1; height: 6px; background: linear-gradient(90deg, #440154, #3b528b, #21918c, #5ec962, #fde725); }
-  .budget-video { margin-top: 44px; }
-  .budget-video h2 span { color: var(--accent); }
-  .budget-video video { width: 100%; display: block; background: var(--canvas-bg); aspect-ratio: 4 / 1; outline: 1px solid var(--line-strong); }
-  .budget-video p { font-size: 13px; color: var(--ink-2); margin: 10px 0 0; max-width: 96ch; }
+  .legend { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--ink-3); margin-top: 8px; }
+  .legend .bar { flex: 1; height: 5px; border-radius: 3px; background: linear-gradient(90deg, #440154, #3b528b, #21918c, #5ec962, #fde725); }
+  .budget-video { margin-top: 72px; }
+  .budget-video h2 { font-size: 13px; color: var(--ink-2); }
+  .budget-video h2 span { color: #fff; }
+  .budget-video video { width: 100%; display: block; border-radius: var(--radius); background: var(--canvas-bg); aspect-ratio: 4 / 1; }
+  .budget-video p { font-size: 13px; color: var(--ink-3); margin: 12px 0 0; max-width: 96ch; }
 
-  /* ---------- fly-throughs */
-  .fly { padding-block: 64px 4px; }
-  .fly-head { display: grid; grid-template-columns: auto 1fr auto; align-items: end; gap: 16px; margin-bottom: 8px; }
-  .fly-head .sechead { margin: 0; display: contents; }
-  .fly-seg { min-width: 250px; margin-bottom: 8px; }
-  .fly-sub { font: 11.5px var(--mono); color: var(--ink-3); margin: 6px 0 16px; letter-spacing: .03em; }
-  .fly-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  /* fly-throughs */
+  .fly { padding-top: 112px; }
+  .fly-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; }
+  .fly-head h2.sec { font: 600 clamp(36px, 4.6vw, 60px)/1 var(--sans); letter-spacing: -.04em; margin: 0; color: var(--ink); }
+  .fly-seg { min-width: 250px; background: var(--surface); }
+  .fly-seg button { color: var(--ink-2); }
+  .fly-seg button:hover { color: var(--ink); }
+  .fly-seg button[aria-pressed="true"] { background: var(--btn); color: var(--btn-ink); }
+  .fly-seg button:focus-visible { outline-color: var(--ink); }
+  .fly-sub { font-size: 14.5px; color: var(--ink-3); margin: 16px 0 32px; }
+  .fly-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
   @media (max-width: 900px) { .fly-grid { grid-template-columns: repeat(2, 1fr); } }
-  .fly-card { all: unset; cursor: pointer; position: relative; display: block; overflow: hidden; background: var(--canvas-bg); outline: 1px solid var(--line-strong); min-width: 0; }
-  .fly-card video { width: 100%; aspect-ratio: 1; display: block; transition: transform .35s ease; }
-  .fly-card:hover { outline: 1.5px solid var(--accent); }
-  .fly-card:hover video { transform: scale(1.03); }
-  .fly-card span { position: absolute; left: 0; bottom: 0; padding: 5px 8px; font: 500 11px var(--mono); color: var(--ink); background: rgba(10,33,57,.86); }
-  .fly-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-  .fly p.cap { font-size: 13px; color: var(--ink-2); margin: 14px 0 0; max-width: 96ch; }
+  .fly-card { all: unset; cursor: pointer; position: relative; display: block; border-radius: var(--radius); overflow: hidden; background: var(--canvas-bg); min-width: 0; isolation: isolate; }
+  .fly-card video { width: 100%; aspect-ratio: 1; display: block; transition: transform .6s cubic-bezier(.2,.7,.2,1); }
+  .fly-card:hover video { transform: scale(1.035); }
+  .fly-card span { position: absolute; inset: auto 0 0 0; padding: 32px 14px 12px; font: 500 12.5px var(--sans); color: #fff; background: linear-gradient(180deg, transparent, rgba(0,0,0,.55)); }
+  .fly-card:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+  .fly p.cap2 { font-size: 13.5px; color: var(--ink-3); margin: 20px 0 0; }
 
-  /* ---------- notes, bibtex, footer */
-  .notes { margin-top: 56px; display: grid; grid-template-columns: repeat(3, 1fr); border: 1.5px solid var(--line-strong); }
-  .notes > div { padding: 20px 22px 22px; border-left: 1px solid var(--line); }
-  .notes > div:first-child { border-left: 0; }
-  .notes h3 { font: 700 17px/1.3 var(--sans); font-stretch: 110%; margin: 0 0 8px; color: var(--ink); }
-  .notes h3::before { content: attr(data-n); display: block; font: 600 10.5px var(--mono); color: var(--accent); letter-spacing: .1em; margin-bottom: 6px; }
-  .notes p { margin: 0; color: var(--ink-2); font-size: 14px; }
-  @media (max-width: 900px) { .notes { grid-template-columns: 1fr; } .notes > div { border-left: 0; border-top: 1px solid var(--line); } .notes > div:first-child { border-top: 0; } }
-  .bibtex { position: relative; }
-  .bibtex pre { margin: 0; font: 12.5px/1.65 var(--mono); background: var(--paper-2); border: 1.5px solid var(--line-strong); padding: 18px 20px; overflow-x: auto; color: var(--ink); }
-  .bibtex .btn { position: absolute; top: 64px; right: 0; }
-  footer { padding-block: 34px 60px; font: 11.5px/1.7 var(--mono); color: var(--ink-3); max-width: 110ch; }
+  /* notes */
+  .notes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; }
+  .notes h3 { font: 600 17px/1.35 var(--sans); letter-spacing: -.015em; margin: 0 0 10px; }
+  .notes p { margin: 0; color: var(--ink-2); font-size: 14.5px; }
 
-  @media (max-width: 900px) { .viewer, .hero-grid { grid-template-columns: 1fr; } .hero-grid { gap: 26px; } .fly-head { grid-template-columns: 1fr; } .fly-head .sechead { display: grid; } }
-  @media (max-width: 560px) { .dim { flex-wrap: wrap; justify-content: center; gap: 4px 10px; font-size: 10px; } .dim::before, .dim::after { display: none; } .wrap { padding-inline: 16px; } .hero { padding-block: 34px 10px; } .titleblock { grid-template-columns: 1fr; } .titleblock .k { border-right: 0; padding-bottom: 0; } .titleblock > div:nth-child(2) { border-top: 0; } .titleblock > div:nth-child(even) { border-top: 0; } }
+  /* bibtex, footer */
+  .bibwrap { position: relative; }
+  .bibwrap pre { margin: 0; font: 13px/1.7 var(--mono); background: var(--surface); border-radius: var(--radius); padding: 22px 24px; overflow-x: auto; color: var(--ink); }
+  .bibwrap .btn { position: absolute; top: 14px; right: 14px; color: var(--ink); box-shadow: 0 0 0 1px var(--hair) inset; background: var(--bg); }
+  .bibwrap .btn:hover { background: var(--surface-2); }
+  .bibwrap .btn:focus-visible { outline-color: var(--ink); }
+  footer { margin-top: 104px; padding-block: 28px 64px; border-top: 1px solid var(--hair); font-size: 12.5px; color: var(--ink-3); }
+  footer p { margin: 0; max-width: 112ch; }
+
+  @media (max-width: 900px) {
+    .viewer { grid-template-columns: 1fr; }
+    .row2, .cap { grid-template-columns: 1fr; gap: 12px; }
+    .notes { grid-template-columns: 1fr; gap: 28px; }
+  }
+  @media (max-width: 560px) { .wrap { padding-inline: 18px; } .row2 { margin-top: 64px; } .stage-band { padding-block: 64px 56px; margin-top: 80px; } .fly { padding-top: 80px; } }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } .fly-card:hover video { transform: none; } }
 </style>
+
 </head>
 <body>
-<!-- ================================================================================
-     BEFORE PUBLISHING: arXiv / Code / Model are shown as "coming soon" (class="soon");
+<!-- BEFORE PUBLISHING: arXiv / Code / Model are shown as "coming soon" (class="soon");
      replace each <span class="soon"> with an <a href="..."> when the link exists, and
-     update the BibTeX entry once the arXiv identifier is known.
-     ================================================================================ -->
+     update the BibTeX entry once the arXiv identifier is known. -->
 <nav class="topnav" aria-label="Sections"><div class="wrap">
   <a class="brand" href="#top">AllocSplat</a>
   <a class="lnk" href="#abstract">Abstract</a>
   <a class="lnk" href="#method">Method</a>
-  <a class="lnk" href="#viewer">Interactive viewer</a>
-  <a class="lnk" href="#budgets-section">Budgets</a>
+  <a class="lnk" href="#viewer">Viewer</a>
   <a class="lnk" href="#flythroughs">Fly-throughs</a>
   <a class="lnk" href="#bibtex">BibTeX</a>
 </div></nav>
 
 <header class="hero" id="top"><div class="wrap">
-  <div class="hero-grid">
-    <div>
-      <p class="kicker">Alloc<span>Splat</span></p>
-      <h1>Spatial Allocation for Budget-Adaptive Feed-Forward Gaussian Splatting</h1>
-    </div>
-    <div class="titleblock" aria-label="Paper details">
-      <div class="k">Authors</div><div>
+  <h1>AllocSplat</h1>
+  <p class="subtitle">Spatial Allocation for Budget-Adaptive Feed-Forward Gaussian Splatting</p>
+  <div class="people">
   <div class="authors">
     <span>Hong Li<sup>1*</sup></span>
     <span>Yichen Yang<sup>1*</sup></span>
@@ -254,9 +243,6 @@
     <span>Yanlun Peng<sup>5</sup></span>
     <span>Baochang Zhang<sup>1&#9993;</sup></span>
   </div>
-  <div class="roles"><span><sup>*</sup>Equal contribution</span><span><sup>&dagger;</sup>Project leader</span><span><sup>&#9993;</sup>Corresponding author</span></div>
-      </div>
-      <div class="k">Affiliations</div><div>
   <div class="affils">
     <span><sup>1</sup>Beihang University</span>
     <span><sup>2</sup>Wuhan University</span>
@@ -264,33 +250,29 @@
     <span><sup>4</sup>Communication University of China</span>
     <span><sup>5</sup>Great Wall Motor</span>
   </div>
-      </div>
-      <div class="k">Model</div><div class="spec">One checkpoint &middot; <b>V</b> = 2, 4, 6 views &middot; <b>M</b> = 256&ndash;1,944 anchors &middot; <b>K</b> = 36 Gaussians / anchor</div>
-      <div class="k">Links</div><div>
+  <div class="roles"><span><sup>*</sup>Equal contribution</span><span><sup>&dagger;</sup>Project leader</span><span><sup>&#9993;</sup>Corresponding author</span></div>
+  </div>
   <div class="links">
     <span class="soon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM7 8h10v2H7zm0 4h10v2H7zm0 4h6v2H7z"/></svg>arXiv<em>coming soon</em></span>
     <span class="soon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.4 1.1 3 .8.1-.6.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.6 9.6 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg>Code<em>coming soon</em></span>
     <span class="soon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 3 6.5v11L12 22l9-4.5v-11zm0 2.2 6.6 3.3L12 10.8 5.4 7.5zM5 9.1l6 3v7.4l-6-3zm8 10.4v-7.4l6-3v7.4z"/></svg>Model<em>coming soon</em></span>
     <a href="#viewer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 3 7v10l9 5 9-5V7zm0 2.3L18.7 8 12 11.7 5.3 8zM5 9.7l6 3.3v6.6l-6-3.3zm8 9.9V13l6-3.3v6.6z"/></svg>Interactive viewer</a>
   </div>
-      </div>
-    </div>
-  </div>
-  <div class="dim"><span>9.2K Gaussians</span><span>&larr;&nbsp; same weights &nbsp;&rarr;</span><span>70.0K Gaussians</span></div>
-  <figure class="figure">
-    <div class="plate"><img src="assets/figures/teaser.png" alt="AllocSplat reconstructions at two budgets with the decoded Gaussian centers, and a PSNR versus Gaussian count plot on DL3DV-140 comparing AllocSplat with ZipSplat, TokenGS, YoNoSplat and DepthSplat." width="3288" height="1287"></div>
-    <figcaption><span class="fig">FIG. 1</span><b>AllocSplat adapts reconstruction capacity with one model.</b> (a,b) Reconstructions at 36.9K Gaussians with
-      insets of the boxed region at 9.2K, beside all decoded Gaussian centers in 3D; (a) an input view, (b) a held-out view.
-      (c) DL3DV-140, four posed inputs, no test-time optimization. AllocSplat and ZipSplat sweep capacity with fixed weights;
-      the others sit at their evaluated capacities. At 36.9K Gaussians AllocSplat reaches 23.87&nbsp;dB, 85.9% fewer
-      Gaussians than TokenGS at 0.99&nbsp;dB higher PSNR, and it leads ZipSplat by 0.29 to 1.65&nbsp;dB at equal primitive counts.</figcaption>
-  </figure>
 </div></header>
 
 <div class="wrap">
-  <section class="block abstract" id="abstract">
-    <div class="sechead"><span class="no">01</span><h2 class="sec">Abstract</h2></div>
-    <p>Feed-forward 3D Gaussian Splatting reconstructs renderable scenes from a few posed images, but storing, streaming and
+  <figure class="figure">
+    <div class="plate"><img src="assets/figures/teaser.png" alt="AllocSplat reconstructions at two budgets with the decoded Gaussian centers, and a PSNR versus Gaussian count plot on DL3DV-140 comparing AllocSplat with ZipSplat, TokenGS, YoNoSplat and DepthSplat." width="3288" height="1287"></div>
+    <figcaption class="cap"><span class="lab">Figure 1</span><p><b>AllocSplat adapts reconstruction capacity with one model.</b> (a,b) Reconstructions at 36.9K Gaussians with
+      insets of the boxed region at 9.2K, beside all decoded Gaussian centers in 3D; (a) an input view, (b) a held-out view.
+      (c) DL3DV-140, four posed inputs, no test-time optimization. AllocSplat and ZipSplat sweep capacity with fixed weights;
+      the others sit at their evaluated capacities. At 36.9K Gaussians AllocSplat reaches 23.87&nbsp;dB, 85.9% fewer
+      Gaussians than TokenGS at 0.99&nbsp;dB higher PSNR, and it leads ZipSplat by 0.29 to 1.65&nbsp;dB at equal primitive counts.</p></figcaption>
+  </figure>
+
+  <section class="row2 abstract" id="abstract">
+    <div class="lab">Abstract</div>
+    <div><p>Feed-forward 3D Gaussian Splatting reconstructs renderable scenes from a few posed images, but storing, streaming and
       rendering them require an output budget chosen by the application. At a smaller budget, each Gaussian must cover more of
       the scene, with its required extent depending on where the others lie in 3D. We introduce <b>AllocSplat</b>, which
       allocates capacity through spatial anchors and uses their local spacing to control Gaussian decoding. From the depth and
@@ -302,24 +284,26 @@
       reaches 23.87&nbsp;dB with 36.9K Gaussians, 0.99&nbsp;dB above TokenGS with 85.9% fewer primitives, and
       0.29&ndash;1.65&nbsp;dB above ZipSplat at equal counts. Controlled comparisons show that the local scale improves on
       both fixed-footprint and global budget-scaling controls, and that bounding Gaussian offsets as well as sizes by it
-      helps at every budget.</p>
+      helps at every budget.</p></div>
   </section>
 
-  <section class="block" id="method">
-    <div class="sechead"><span class="no">02</span><h2 class="sec">Method</h2></div>
-    <figure class="figure" style="margin-top:0">
-      <div class="plate"><img src="assets/figures/pipeline.png" alt="AllocSplat pipeline: a visual geometry model produces features and depths, which are unprojected into 3D anchor candidates; M anchors are allocated, each anchor's local scale is computed from its neighbours, and a density-adaptive decoder emits K Gaussians per anchor." width="2840" height="1128" loading="lazy"></div>
-      <figcaption><span class="fig">FIG. 2</span><b>AllocSplat.</b> Sparse views and their known cameras pass through a visual geometry model (VGM), whose
+  <section class="row2" id="method">
+    <div class="lab">Method</div>
+    <div><p class="lede-m">One checkpoint serves every budget: <b>V</b> = 2, 4 or 6 posed views, <b>M</b> = 256 to 1,944 anchors,
+      <b>K</b> = 36 Gaussians per anchor.</p></div>
+  </section>
+  <figure class="figure full">
+    <div class="plate"><img src="assets/figures/pipeline.png" alt="AllocSplat pipeline: a visual geometry model produces features and depths, which are unprojected into 3D anchor candidates; M anchors are allocated, each anchor's local scale is computed from its neighbours, and a density-adaptive decoder emits K Gaussians per anchor." width="2840" height="1128" loading="lazy"></div>
+    <figcaption class="cap"><span class="lab">Figure 2</span><p><b>AllocSplat.</b> Sparse views and their known cameras pass through a visual geometry model (VGM), whose
         multi-layer features and depths are unprojected into a pool of 3D anchor candidates. A joint geometry&ndash;appearance
         farthest-point rule allocates exactly <i>M</i> of them, and the resulting density sets each anchor's local spatial
         scale &rho;<sub><i>i</i></sub>, so the same centers are decoded differently at different budgets. The Gaussian head
-        emits <i>K</i> primitives per anchor, <i>KM</i> in total.</figcaption>
-    </figure>
-  </section>
+        emits <i>K</i> primitives per anchor, <i>KM</i> in total.</p></figcaption>
+  </figure>
 </div>
 
 <div class="stage-band" id="viewer"><div class="wrap">
-  <section class="block" style="padding-bottom:0"><div class="sechead"><span class="no">03</span><h2 class="sec">Interactive viewer</h2></div></section>
+  <h2 class="sec-title">Interactive viewer</h2>
   <p class="sec-lede">Sixteen DL3DV-140 test scenes, reconstructed from two, four or six posed views by one checkpoint without
     test-time optimization. Switch the budget to see the same weights emit 36<i>M</i> Gaussians; show the anchors or the
     groups and point at an anchor to see exactly which Gaussians it decodes and how far they may reach.</p>
@@ -422,7 +406,7 @@
 <div class="wrap">
   <section class="fly" id="flythroughs">
     <div class="fly-head">
-      <div class="sechead"><span class="no">04</span><h2 class="sec" id="flyTitle">Fly-throughs</h2></div>
+      <h2 class="sec" id="flyTitle">Fly-throughs</h2>
       <div class="seg fly-seg" role="group" aria-label="Number of input views">
         <button type="button" data-group="flyviews" data-val="2">2 views</button>
         <button type="button" data-group="flyviews" data-val="4">4 views</button>
@@ -431,53 +415,62 @@
     </div>
     <p class="fly-sub" id="flySub"></p>
     <div class="fly-grid" id="flyGrid"></div>
-    <p class="cap">Rendered with the rasterizer used for evaluation, at twice the evaluation resolution, along a spline
+    <p class="cap2">Rendered with the rasterizer used for evaluation, at twice the evaluation resolution, along a spline
       through the input cameras. Click a video to open that scene in the viewer.</p>
   </section>
 
-  <section class="notes">
+
+  <section class="row2">
+    <div class="lab">Notes</div>
     <div>
-      <h3 data-n="NOTE 01">One set of weights, several budgets</h3>
+  <div class="notes">
+    <div>
+      <h3>One set of weights, several budgets</h3>
       <p>Each budget recomputes the local scales and the contextualized decode from the same checkpoint and outputs exactly
         36<i>M</i> Gaussians. The PSNR shown is the mean over the scene's held-out frames on the common 252&times;252
         evaluation canvas.</p>
     </div>
     <div>
-      <h3 data-n="NOTE 02">Allocation in 3D</h3>
+      <h3>Allocation in 3D</h3>
       <p>Anchors are selected by a non-learned farthest-point rule among the depth points back-projected from the inputs
         (324 candidates per view). The anchors of a smaller budget are the first <i>M</i> anchors of a larger one;
         &ldquo;Replay allocation&rdquo; adds them in that order.</p>
     </div>
     <div>
-      <h3 data-n="NOTE 03">Spacing sets extent</h3>
+      <h3>Spacing sets extent</h3>
       <p>An anchor's local scale &rho; is the mean distance to its 8 nearest selected anchors, clamped to [0.03, 0.5]. Its 36
         Gaussian centers are confined to a box of half-width &rho; around it, and their scales are capped by &rho;. Lower
         budgets space anchors farther apart, so &rho; grows and each group covers more of the scene.</p>
     </div>
+  </div>
+    </div>
   </section>
 
-  <section class="block bibtex" id="bibtex">
-    <div class="sechead"><span class="no">05</span><h2 class="sec">BibTeX</h2></div>
-    <button type="button" class="btn sm" id="copyBib">Copy</button>
-    <pre id="bibText">@article{allocsplat,
+  <section class="row2" id="bibtex">
+    <div class="lab">BibTeX</div>
+    <div class="bibwrap">
+      <button type="button" class="btn sm" id="copyBib">Copy</button>
+          <pre id="bibText">@article{allocsplat,
   title   = {AllocSplat: Spatial Allocation for Budget-Adaptive Feed-Forward Gaussian Splatting},
   author  = {Li, Hong and Yang, Yichen and Guo, Xianda and Li, Changbai and Xiao, Weiqing and Yang, Linlin and Peng, Yanlun and Zhang, Baochang},
   journal = {arXiv preprint},
   year    = {2026},
   note    = {Coming soon}
 }</pre>
+    </div>
   </section>
 
-  <footer>The viewer draws the predicted Gaussians with a WebGL splatting implementation written for this page; renderings
+    <footer><p>The viewer draws the predicted Gaussians with a WebGL splatting implementation written for this page; renderings
     may differ slightly from the rasterizer used for the reported metrics and the videos. The inspector shows the local scale
     &rho; the model used at inference; its distances are computed in TF32 precision, so for a few anchors &rho; differs slightly
     from the exact mean distance to the 8 nearest anchors drawn in the viewer. Colors and opacities are stored at
-    8-bit precision, scales at 16-bit and positions at 16-bit within each scene's bounding box.</footer>
+    8-bit precision, scales at 16-bit and positions at 16-bit within each scene's bounding box.</p></footer>
 </div>
 
 <script src="assets/data/manifest.js"></script>
 <script src="assets/viewer.js"></script>
 <script>
+  (function () { const n = document.querySelector('.topnav'); const f = () => n.classList.toggle('scrolled', scrollY > 8); addEventListener('scroll', f, { passive: true }); f(); })();
   document.getElementById('copyBib').onclick = function () {
     const t = document.getElementById('bibText').innerText;
     const done = () => { this.textContent = 'Copied'; setTimeout(() => { this.textContent = 'Copy'; }, 1500); };

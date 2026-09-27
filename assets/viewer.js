@@ -660,20 +660,26 @@ void main() { float a = 1.0 - smoothstep(0.55, 1.0, abs(vSide)); frag = vec4(vCo
       gal.appendChild(b);
     });
   }
+  S.flyV = S.V;
   function buildGallery() {
     fg.innerHTML = '';
-    let d0 = null;
+    let d0 = null; const FV = S.flyV;
+    setSegment('flyviews', FV);
     MAN.scenes.forEach((sc, i) => {
-      const v = sc.views[S.V]; if (!v.videos || !v.videos.main) return;
+      const v = sc.views[FV]; if (!v.videos || !v.videos.main) return;
       const d = v.budgets.find(x => x.default); d0 = d;
       const b = document.createElement('button'); b.type = 'button'; b.className = 'fly-card';
       b.innerHTML = `<video src="${v.videos.main}" muted loop playsinline autoplay preload="metadata"></video>` +
         `<span>${sc.label} &middot; ${d.psnr.toFixed(2)} dB</span>`;
-      b.onclick = () => { showScene(i); document.querySelector('.viewer').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+      b.onclick = () => {
+        if (S.V !== FV) { S.V = FV; setSegment('views', FV); S.budget = null; buildScenes(); }
+        showScene(i); document.querySelector('.viewer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
       fg.appendChild(b);
     });
     fg.parentElement.hidden = !fg.children.length;
-    if (d0) $('flyTitle').textContent = `Fly-throughs · ${S.V} input views · M = ${fmt(d0.M)} (${(d0.N / 1000).toFixed(1)}K Gaussians)`;
+    $('flyTitle').textContent = 'Fly-throughs';
+    if (d0) $('flySub').textContent = `${FV} input views · default budget M = ${fmt(d0.M)} · ${fmt(d0.N)} Gaussians per scene`;
   }
   function buildBudgets() {
     bw.innerHTML = '';
@@ -687,8 +693,11 @@ void main() { float a = 1.0 - smoothstep(0.55, 1.0, abs(vSide)); frag = vec4(vCo
   }
   document.querySelectorAll('[data-group="views"]').forEach(el => el.onclick = () => {
     const V = +el.dataset.val; if (V === S.V) return;
-    S.V = V; setSegment('views', V); S.budget = null;
+    S.V = V; S.flyV = V; setSegment('views', V); S.budget = null;
     buildScenes(); buildGallery(); showScene(S.sceneIndex);
+  });
+  document.querySelectorAll('[data-group="flyviews"]').forEach(el => el.onclick = () => {
+    const V = +el.dataset.val; if (V === S.flyV) return; S.flyV = V; buildGallery();
   });
   document.querySelectorAll('[data-group="show"]').forEach(el => el.onclick = () => {
     S.show = el.dataset.val; setSegment('show', S.show);

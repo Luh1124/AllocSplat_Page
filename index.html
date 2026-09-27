@@ -145,6 +145,10 @@
   .fly-card span { position: absolute; inset: auto 0 0 0; padding: 26px 12px 10px; font: 500 12px var(--sans); color: #fff; letter-spacing: .01em;
                    background: linear-gradient(180deg, transparent, rgba(0,0,0,.62)); font-variant-numeric: tabular-nums; }
   .fly-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .fly-head { display: flex; align-items: center; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap; }
+  .fly-head h2.sec { margin: 0; }
+  .fly-seg { min-width: 260px; }
+  .fly-sub { font: 12px var(--mono); color: var(--ink-3); margin: 8px 0 14px; }
   .fly p.cap { font-size: 13px; color: var(--ink-2); margin: 12px 0 0; max-width: 92ch; }
   .notes { margin-top: 40px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
   @media (max-width: 900px) { .notes { grid-template-columns: 1fr; } }
@@ -188,7 +192,7 @@
   .figure.framed img { padding: 14px; border: 1px solid var(--line); box-shadow: var(--shadow); }
   .figure figcaption { font-size: 13.5px; color: var(--ink-2); margin: 12px auto 0; max-width: 96ch; text-align: left; }
   section.block { padding-block: 48px 8px; }
-  .block > h2.sec, .stage-band h2.sec { font: 600 clamp(24px, 2.6vw, 30px)/1.2 var(--serif); letter-spacing: -.01em; text-transform: none; color: var(--ink); margin: 0 0 16px; }
+  .block > h2.sec, .stage-band h2.sec, .fly-head h2.sec { font: 600 clamp(24px, 2.6vw, 30px)/1.2 var(--serif); letter-spacing: -.01em; text-transform: none; color: var(--ink); margin: 0 0 16px; }
   .stage-band h2.sec { color: #eef4f5; }
   .sec-lede { color: var(--ink-2); max-width: 78ch; margin: -6px 0 22px; }
   .stage-band .sec-lede { color: #a9babe; }
@@ -408,7 +412,15 @@
 
 <div class="wrap">
   <section class="fly" id="flythroughs">
-    <h2 class="sec" id="flyTitle">Fly-throughs</h2>
+    <div class="fly-head">
+      <h2 class="sec" id="flyTitle">Fly-throughs</h2>
+      <div class="seg fly-seg" role="group" aria-label="Number of input views">
+        <button type="button" data-group="flyviews" data-val="2">2 views</button>
+        <button type="button" data-group="flyviews" data-val="4">4 views</button>
+        <button type="button" data-group="flyviews" data-val="6">6 views</button>
+      </div>
+    </div>
+    <p class="fly-sub" id="flySub"></p>
     <div class="fly-grid" id="flyGrid"></div>
     <p class="cap">Rendered with the rasterizer used for evaluation, at twice the evaluation resolution, along a spline
       through the input cameras. Click a video to open that scene in the viewer.</p>
